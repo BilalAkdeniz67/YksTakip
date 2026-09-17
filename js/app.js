@@ -994,8 +994,10 @@ $("lessonForm")?.addEventListener("submit", (event) => {
 });
 
 $("lessonDay")?.addEventListener("change", () => {
-  const subjects = store.timetable[$("lessonDay").value] || [];
-  const mapped = subjects.map(item => item.subject);
+  const rawList = store.timetable[$("lessonDay").value] || [];
+  const mapped = rawList
+    .map(item => (typeof item === "object" && item !== null) ? (item.subject || "") : String(item))
+    .filter(s => s.length > 0);
   fillSelect($("lessonSubject"), mapped.length ? mapped : SUBJECTS);
 });
 
