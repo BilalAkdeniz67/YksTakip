@@ -490,19 +490,46 @@ function renderReports() {
   `;
 }
 
+let studentRankMode = "class";
+
 function renderRank() {
   const s = currentStudent();
   if (!s) return;
-  const classmates = store.students
-    .filter((x) => x.classId === s.classId)
-    .map((x) => ({ ...x, total: x.week.reduce((a, b) => a + b, 0) }))
+
+  if ($("rankTabClass")) {
+    $("rankTabClass").textContent = `Sınıfım (${s.classId})`;
+    $("rankTabClass").classList.toggle("active", studentRankMode === "class");
+  }
+  if ($("rankTabSchool")) {
+    $("rankTabSchool").classList.toggle("active", studentRankMode === "school");
+  }
+
+  const listData = studentRankMode === "class"
+    ? store.students.filter((x) => x.classId === s.classId)
+    : store.students;
+
+  const ranked = listData
+    .map((x) => ({ ...x, total: (Array.isArray(x.week) ? x.week : []).reduce((a, b) => a + b, 0) }))
     .sort((a, b) => b.total - a.total);
-  if ($("rankList")) $("rankList").innerHTML = classmates
-    .map(
-      (x, i) =>
-        `<li class="${x.id === s.id ? "you" : ""}"><span>${i + 1}</span> ${x.name} <b>${x.total}</b></li>`
-    )
-    .join("");
+
+  if ($("rankList")) {
+    $("rankList").innerHTML = ranked
+      .map((x, i) => {
+        const isYou = String(x.id) === String(s.id);
+        const badge = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`;
+        return `
+          <li class="${isYou ? "you" : ""}" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: 8px;">
+            <span style="font-size: 16px; min-width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: ${i < 3 ? 'transparent' : 'var(--navy)'}; color: ${i < 3 ? '#000' : '#fff'};">${badge}</span>
+            <img src="${x.avatar || DEFAULT_NO_AVATAR}" class="avatar-sm" alt="${x.name}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;" />
+            <div style="flex: 1;">
+              <strong>${x.name} ${isYou ? '<small style="color: var(--orange); font-weight: bold; margin-left: 4px;">(Sen)</small>' : ""}</strong>
+              ${studentRankMode === "school" ? `<small style="display: block; color: var(--muted); font-size: 12px;">${x.classId}</small>` : ""}
+            </div>
+            <b style="color: var(--orange); font-size: 15px;">${x.total} Soru</b>
+          </li>`;
+      })
+      .join("");
+  }
 }
 
 function renderTeacherRank() {
@@ -585,7 +612,7 @@ function renderCalendar(forStudentId = null, isTeacherView = false) {
 }
 
 function openStudentProfile(studentId) {
-  const s = store.students.find(st => st.id === studentId);
+  const s = store.students.find(st => String(st.id) === String(studentId));
   if (!s) return;
   activeProfileStudentId = s.id;
 
@@ -794,6 +821,15 @@ $("profileFileInput")?.addEventListener("change", (e) => {
 });
 
 $("logoutBtn")?.addEventListener("click", logout);
+
+$("rankTabClass")?.addEventListener("click", () => {
+  studentRankMode = "class";
+  renderRank();
+});
+$("rankTabSchool")?.addEventListener("click", () => {
+  studentRankMode = "school";
+  renderRank();
+});
 
 document.querySelectorAll(".nav-btn").forEach((button) => {
   button.addEventListener("click", () => {
