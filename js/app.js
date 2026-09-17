@@ -57,6 +57,8 @@ const defaultStore = {
   selectedDay: todayName,
 };
 
+let store = structuredClone(defaultStore);
+
 // --- Firebase Config & Multi-backend Storage ---
 // Firebase Console > Project Settings > General sekmesinden config bilgilerinizi aşağıdaki objeye ekleyebilirsiniz.
 const firebaseConfig = {
