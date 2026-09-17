@@ -95,28 +95,75 @@ function initFirebase() {
 
 function processStoreData(parsed) {
   if (!parsed) return;
-  if (!parsed.timetable) parsed.timetable = defaultTimetable;
-  else {
+
+  if (parsed.students) {
+    parsed.students = Array.isArray(parsed.students)
+      ? parsed.students
+      : Object.values(parsed.students);
+  } else {
+    parsed.students = defaultStore.students;
+  }
+
+  parsed.students = parsed.students.filter(Boolean).map((s) => {
+    if (!s.week || typeof s.week !== "object") {
+      s.week = [0, 0, 0, 0, 0, 0, 0];
+    } else if (!Array.isArray(s.week)) {
+      s.week = Object.values(s.week);
+    }
+    while (s.week.length < 7) s.week.push(0);
+    return s;
+  });
+
+  if (parsed.teachers) {
+    parsed.teachers = Array.isArray(parsed.teachers)
+      ? parsed.teachers
+      : Object.values(parsed.teachers);
+  } else {
+    parsed.teachers = defaultStore.teachers;
+  }
+
+  if (parsed.lessons) {
+    parsed.lessons = Array.isArray(parsed.lessons)
+      ? parsed.lessons
+      : Object.values(parsed.lessons);
+  } else {
+    parsed.lessons = defaultStore.lessons;
+  }
+
+  if (parsed.classes) {
+    parsed.classes = Array.isArray(parsed.classes)
+      ? parsed.classes
+      : Object.values(parsed.classes);
+  } else {
+    parsed.classes = defaultStore.classes;
+  }
+
+  if (!parsed.timetable || typeof parsed.timetable !== "object") {
+    parsed.timetable = defaultTimetable;
+  } else {
     Object.keys(parsed.timetable).forEach((day) => {
-      parsed.timetable[day] = parsed.timetable[day]
+      let list = parsed.timetable[day];
+      if (!Array.isArray(list)) list = Object.values(list || {});
+      parsed.timetable[day] = list
         .map((item, i) => {
           if (typeof item === "string") return { time: String(9 + i).padStart(2, "0") + ":00", subject: item };
           return item;
         })
-        .sort((a, b) => a.time.localeCompare(b.time));
+        .filter(Boolean)
+        .sort((a, b) => (a.time || "").localeCompare(b.time || ""));
     });
   }
-  if (!parsed.history) parsed.history = {};
-  if (!parsed.teachers) {
-    parsed.teachers = defaultStore.teachers;
-  } else {
-    defaultStore.teachers.forEach((dt) => {
-      const pt = parsed.teachers.find((t) => t.id === dt.id);
-      if (!pt) parsed.teachers.push(dt);
-      else if (!pt.password) pt.password = dt.password;
-    });
-  }
-  const curr = store.currentUser;
+
+  if (!parsed.history || typeof parsed.history !== "object") parsed.history = {};
+  if (!parsed.goals || typeof parsed.goals !== "object") parsed.goals = {};
+
+  defaultStore.teachers.forEach((dt) => {
+    const pt = parsed.teachers.find((t) => String(t.id) === String(dt.id));
+    if (!pt) parsed.teachers.push(dt);
+    else if (!pt.password) pt.password = dt.password;
+  });
+
+  const curr = store && store.currentUser ? store.currentUser : null;
   store = { ...structuredClone(defaultStore), ...parsed };
   if (curr) store.currentUser = curr;
 }
@@ -193,10 +240,16 @@ const $ = (id) => document.getElementById(id);
 
 function currentStudent() {
   if (!store || !store.currentUser || store.currentUser.role !== 'student') return null;
+  if (!Array.isArray(store.students)) {
+    store.students = Object.values(store.students || {});
+  }
   return store.students.find((s) => String(s.id) === String(store.currentUser.id));
 }
 function currentTeacher() {
   if (!store || !store.currentUser || store.currentUser.role !== 'teacher') return null;
+  if (!Array.isArray(store.teachers)) {
+    store.teachers = Object.values(store.teachers || {});
+  }
   return store.teachers.find((t) => String(t.id) === String(store.currentUser.id));
 }
 
@@ -732,25 +785,29 @@ $("loginForm")?.addEventListener("submit", (e) => {
   $("loginError").textContent = "";
 
   if (role === 'student') {
-    const st = store.students.find(s => s.id === id);
+    if (!Array.isArray(store.students)) store.students = Object.values(store.students || {});
+    const st = store.students.find(s => String(s.id) === String(id));
     if (st) {
       if (st.password === password || !st.password) {
-        setRole('student', id);
+        setRole('student', st.id);
       } else {
         $("loginError").textContent = "Hatalı şifre!";
       }
+    } else {
+      $("loginError").textContent = "Öğrenci numarası bulunamadı! Kayıt Ol sekmesinden kayıt olabilirsiniz.";
     }
-    else $("loginError").textContent = "Öğrenci numarası bulunamadı!";
   } else {
-    const t = store.teachers.find(t => t.id === id);
-    if (t) {
-      if (t.password === password) {
-        setRole('teacher', id);
+    if (!Array.isArray(store.teachers)) store.teachers = Object.values(store.teachers || {});
+    const tc = store.teachers.find(t => String(t.id) === String(id));
+    if (tc) {
+      if (tc.password === password || !tc.password) {
+        setRole('teacher', tc.id);
       } else {
         $("loginError").textContent = "Hatalı şifre!";
       }
+    } else {
+      $("loginError").textContent = "Öğretmen ID'si bulunamadı!";
     }
-    else $("loginError").textContent = "Öğretmen ID'si bulunamadı!";
   }
 });
 
@@ -769,7 +826,9 @@ $("registerForm")?.addEventListener("submit", (e) => {
       return;
     }
 
-    if (store.students.find((s) => s.id === id)) {
+    if (!Array.isArray(store.students)) store.students = Object.values(store.students || {});
+
+    if (store.students.find((s) => String(s.id) === String(id))) {
       $("regError").textContent = "Bu numara ile kayıtlı öğrenci zaten var! Giriş Yap sekmesini kullanabilirsiniz.";
       return;
     }
