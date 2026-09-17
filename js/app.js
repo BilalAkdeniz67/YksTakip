@@ -269,7 +269,9 @@ function todayGoal(studentId) {
 
 function fillSelect(select, options, selected) {
   if (!select) return;
-  select.innerHTML = options.map((opt) => `<option value="${opt}" ${opt === selected ? "selected" : ""}>${opt}</option>`).join("");
+  const safeOptions = (options || []).map(opt => typeof opt === "object" && opt !== null ? (opt.subject || opt.name || opt.id || JSON.stringify(opt)) : opt);
+  const safeSelected = typeof selected === "object" && selected !== null ? (selected.subject || selected.name || selected.id) : selected;
+  select.innerHTML = safeOptions.map((opt) => `<option value="${opt}" ${opt === safeSelected ? "selected" : ""}>${opt}</option>`).join("");
 }
 
 function setRole(role, userId) {
@@ -404,7 +406,7 @@ function renderStudentGoals() {
     .join("");
 }
 
-function renderLessons(gridId, classId, day) {
+function renderLessons(gridId, classId, day, isTeacher = false) {
   const grid = $(gridId);
   if (!grid) return;
   const subjects = store.timetable[day] || [];
@@ -415,11 +417,15 @@ function renderLessons(gridId, classId, day) {
   grid.innerHTML = subjects
     .map((item) => {
       const rec = store.lessons.find((l) => l.classId === classId && l.day === day && l.subject === item.subject);
+      const delBtn = (isTeacher && rec)
+        ? `<button type="button" class="btn-ghost" data-del-lesson="${rec.classId}|${rec.day}|${rec.subject}" style="color: #ef4444; margin-top: 8px; font-size: 12px; padding: 4px 10px; border: 1px solid #fca5a5; border-radius: 6px; cursor: pointer;">🗑️ Kaydı Sil</button>`
+        : "";
       return `
         <article class="lesson-card">
           <p class="eyebrow">${item.time} · ${item.subject}</p>
           <h3>${rec ? rec.topic : "Henüz işlenmedi"}</h3>
           <small>${classId} · ${day}${rec && rec.date ? ' · ' + rec.date.split('-').reverse().join('.') : ''}</small>
+          ${delBtn}
         </article>`;
     })
     .join("");
@@ -702,7 +708,7 @@ function renderAll() {
     renderHome();
     renderStudentGoals();
     renderDayTabs("studentDayTabs", store.selectedDay, "day");
-    renderLessons("studentLessonGrid", currentStudent().classId, store.selectedDay);
+    renderLessons("studentLessonGrid", currentStudent().classId, store.selectedDay, false);
     renderReports();
     renderRank();
     renderCalendar();
@@ -710,9 +716,11 @@ function renderAll() {
     renderTeacherHome();
     fillSelect($("lessonClass"), store.classes, store.selectedClass);
     fillSelect($("lessonDay"), DAYS, store.selectedDay);
-    fillSelect($("lessonSubject"), store.timetable[store.selectedDay] || SUBJECTS, store.timetable[store.selectedDay]?.[0]);
+    const currTimetable = store.timetable[store.selectedDay] || [];
+    const subjectList = currTimetable.map(item => typeof item === "object" ? item.subject : item);
+    fillSelect($("lessonSubject"), subjectList.length ? subjectList : SUBJECTS);
     renderDayTabs("teacherDayTabs", store.selectedDay, "tday");
-    renderLessons("teacherLessonGrid", store.selectedClass, store.selectedDay);
+    renderLessons("teacherLessonGrid", store.selectedClass, store.selectedDay, true);
     renderClassTabs("trackClassTabs", store.selectedClass);
     renderTrackTable("trackTable");
     renderTimetable();
@@ -1038,6 +1046,17 @@ document.body.addEventListener("click", (event) => {
     store.selectedClass = classBtn.dataset.class;
     saveStore();
     renderAll();
+  }
+
+  const delLessonBtn = event.target.closest("[data-del-lesson]");
+  if (delLessonBtn) {
+    const [classId, day, subject] = delLessonBtn.dataset.delLesson.split("|");
+    const idx = store.lessons.findIndex((l) => l.classId === classId && l.day === day && l.subject === subject);
+    if (idx >= 0) {
+      store.lessons.splice(idx, 1);
+      saveStore();
+      renderAll();
+    }
   }
 
   const profRow = event.target.closest(".clickable-row[data-profile-id]");
