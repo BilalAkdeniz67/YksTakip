@@ -1,7 +1,7 @@
 const DAYS = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"];
 const DAY_SHORT = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 const SUBJECTS = ["Matematik", "Fizik", "Kimya", "Biyoloji", "Türkçe", "Edebiyat", "Tarih", "Coğrafya"];
-const DEFAULT_NO_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2364748b"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-3.8-1.04-4.83-2.61.03-.99 2.02-1.89 4.83-1.89s4.79.9 4.83 1.89C15.8 18.96 14.03 20 12 20z"/></svg>`;
+const DEFAULT_NO_AVATAR = `data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22%2364748b%22%3E%3Cpath%20d%3D%22M12%202C6.48%202%202%206.48%202%2012s4.48%2010%2010%2010%2010-4.48%2010-10S17.52%202%2012%202zm0%204c1.93%200%203.5%201.57%203.5%203.5S13.93%2013%2012%2013s-3.5-1.57-3.5-3.5S10.07%206%2012%206zm0%2014c-2.03%200-3.8-1.04-4.83-2.61.03-.99%202.02-1.89%204.83-1.89s4.79.9%204.83%201.89C15.8%2018.96%2014.03%2020%2012%2020z%22%2F%3E%3C%2Fsvg%3E`;
 
 const defaultTimetableStrings = {
   Pazartesi: ["Matematik", "Fizik", "Kimya", "Türkçe"],
@@ -41,12 +41,19 @@ const defaultStore = {
     { id: "fatma", name: "Fatma Zeynep Özkan", subject: "Biyoloji", password: "1234" }
   ],
   students: [
+    { id: "105", name: "Elif Yılmaz", classId: "12-A", field: "Sayısal", avatar: "", week: [42, 55, 38, 61, 47, 28, 0] },
+    { id: "106", name: "Mert Kaya", classId: "12-A", field: "Sayısal", avatar: "", week: [50, 60, 44, 70, 52, 30, 48] },
   ],
   goals: {
+    "105": [{ day: todayName, subject: "Matematik", topic: "Polinomlar", count: 60 }],
+    "106": [{ day: todayName, subject: "Fizik", topic: "Kuvvet", count: 50 }],
   },
   history: {},
   lessons: [
+    { classId: "12-A", day: "Pazartesi", subject: "Matematik", topic: "Polinomlar" },
+    { classId: "12-A", day: "Pazartesi", subject: "Fizik", topic: "Kuvvet ve Hareket" },
   ],
+  selectedClass: "12-A",
   selectedDay: todayName,
 };
 
@@ -185,12 +192,12 @@ async function saveStore() {
 const $ = (id) => document.getElementById(id);
 
 function currentStudent() {
-  if (!store.currentUser || store.currentUser.role !== 'student') return null;
-  return store.students.find((s) => s.id === store.currentUser.id);
+  if (!store || !store.currentUser || store.currentUser.role !== 'student') return null;
+  return store.students.find((s) => String(s.id) === String(store.currentUser.id));
 }
 function currentTeacher() {
-  if (!store.currentUser || store.currentUser.role !== 'teacher') return null;
-  return store.teachers.find((t) => t.id === store.currentUser.id);
+  if (!store || !store.currentUser || store.currentUser.role !== 'teacher') return null;
+  return store.teachers.find((t) => String(t.id) === String(store.currentUser.id));
 }
 
 function todayGoals(studentId) {
@@ -303,9 +310,10 @@ function renderHome() {
 function renderChart(week) {
   const chart = $("weekChart");
   if (!chart) return;
+  const safeWeek = Array.isArray(week) ? week : [0, 0, 0, 0, 0, 0, 0];
   chart.innerHTML = "";
-  const max = Math.max(...week, 1);
-  week.forEach((value, index) => {
+  const max = Math.max(...safeWeek, 1);
+  safeWeek.forEach((value, index) => {
     const col = document.createElement("div");
     col.className = "bar-col";
     const bar = document.createElement("div");
@@ -801,12 +809,20 @@ $("solveForm")?.addEventListener("submit", (event) => {
   event.preventDefault();
   const count = Number($("solvedCount").value);
   if (Number.isNaN(count) || count < 0) {
-    $("formNote").textContent = "Lütfen geçerli bir soru sayısı gir.";
+    if ($("formNote")) $("formNote").textContent = "Lütfen geçerli bir soru sayısı gir.";
     return;
   }
   const student = currentStudent();
+  if (!student) {
+    if ($("formNote")) $("formNote").textContent = "Oturum açmış öğrenci bulunamadı. Lütfen tekrar giriş yapın.";
+    return;
+  }
+  if (!Array.isArray(student.week)) {
+    student.week = [0, 0, 0, 0, 0, 0, 0];
+  }
   student.week[todayIndex] = count;
 
+  if (!store.history) store.history = {};
   if (!store.history[student.id]) store.history[student.id] = {};
   const goal = todayGoal(student.id);
   const details = goal ? `Hedef: ${goal.count} soru (${goal.subject} - ${goal.topic})` : "";
@@ -816,11 +832,13 @@ $("solveForm")?.addEventListener("submit", (event) => {
   };
 
   saveStore();
-  $("formNote").textContent = goal && count >= goal.count
-    ? "Tebrikler, günlük hedefini tamamladın."
-    : goal
-      ? `Kalan hedef: ${Math.max(goal.count - count, 0)} soru.`
-      : "Soru sayın kaydedildi. Hedef için Günlük Hedefler sayfasını kullan.";
+  if ($("formNote")) {
+    $("formNote").textContent = goal && count >= goal.count
+      ? "Tebrikler, günlük hedefini tamamladın."
+      : goal
+        ? `Kalan hedef: ${Math.max(goal.count - count, 0)} soru.`
+        : "Soru sayın kaydedildi. Hedef için Günlük Hedefler sayfasını kullan.";
+  }
   renderAll();
 });
 
