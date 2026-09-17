@@ -41,19 +41,12 @@ const defaultStore = {
     { id: "fatma", name: "Fatma Zeynep Özkan", subject: "Biyoloji", password: "1234" }
   ],
   students: [
-    { id: "105", name: "Elif Yılmaz", classId: "12-A", field: "Sayısal", avatar: "", week: [42, 55, 38, 61, 47, 28, 0] },
-    { id: "106", name: "Mert Kaya", classId: "12-A", field: "Sayısal", avatar: "", week: [50, 60, 44, 70, 52, 30, 48] },
   ],
   goals: {
-    "105": [{ day: todayName, subject: "Matematik", topic: "Polinomlar", count: 60 }],
-    "106": [{ day: todayName, subject: "Fizik", topic: "Kuvvet", count: 50 }],
   },
   history: {},
   lessons: [
-    { classId: "12-A", day: "Pazartesi", subject: "Matematik", topic: "Polinomlar" },
-    { classId: "12-A", day: "Pazartesi", subject: "Fizik", topic: "Kuvvet ve Hareket" },
   ],
-  selectedClass: "12-A",
   selectedDay: todayName,
 };
 
@@ -168,10 +161,12 @@ async function loadStore() {
 }
 
 async function saveStore() {
+  initFirebase();
   localStorage.setItem("yks-takip-offline", JSON.stringify(store));
   if (isFirebaseActive && dbRef) {
     try {
       await dbRef.set(store);
+      console.log("Veriler Firebase'e (yks_store) başarıyla kaydedildi.");
     } catch (err) {
       console.error("Firebase'e kaydedilemedi:", err);
     }
