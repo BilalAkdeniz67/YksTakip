@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="tr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>YKS Takip — Veri Taşıma</title>
+<style>body{font-family:system-ui,sans-serif;max-width:680px;margin:64px auto;padding:0 20px;color:#0b1f4a}button{border:0;border-radius:10px;background:#ff6b1a;color:#fff;padding:12px 18px;font-weight:700;cursor:pointer}input{padding:10px;border:1px solid #ccd3df;border-radius:8px;width:100%;box-sizing:border-box;margin:8px 0 16px}pre{white-space:pre-wrap;background:#f6f8fc;padding:16px;border-radius:12px}</style>
+<h1>YKS Takip veri taşıma</h1>
+<p>Bu sayfa eski düz <code>yks_store</code> verisini yeni güvenli yapıya kopyalar. Bir kez çalıştırın; ardından Firebase kurallarını yayınlayın.</p>
+<label>Onay için <strong>TASI</strong> yazın<input id="confirm" autocomplete="off"></label>
+<button id="migrate">Veriyi Taşı</button>
+<pre id="status">Hazır.</pre>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+<script>
+  const config = { apiKey:"AIzaSyCN1bwiMvygE9uHbElZOXqVS1rnWIo3-kE", authDomain:"ykstakip-6b594.firebaseapp.com", databaseURL:"https://ykstakip-6b594-default-rtdb.firebaseio.com", projectId:"ykstakip-6b594", storageBucket:"ykstakip-6b594.firebasestorage.app", messagingSenderId:"428783558644", appId:"1:428783558644:web:caa1ca40904ea20eb223a1" };
+  firebase.initializeApp(config);
+  const root = firebase.database().ref("yks_store");
+  const status = document.querySelector("#status");
+
+  document.querySelector("#migrate").addEventListener("click", async () => {
+    if (document.querySelector("#confirm").value !== "TASI") return status.textContent = "Onay metni doğru değil.";
+    try {
+      status.textContent = "Eski veri okunuyor…";
+      const legacy = (await root.once("value")).val();
+      if (!legacy?.students || legacy.meta) return status.textContent = "Taşınacak eski veri bulunamadı ya da taşıma daha önce yapılmış.";
+      const students = Array.isArray(legacy.students) ? legacy.students.filter(Boolean) : Object.values(legacy.students);
+      const teachers = Array.isArray(legacy.teachers) ? legacy.teachers.filter(Boolean) : Object.values(legacy.teachers || {});
+      const classes = Array.isArray(legacy.classes) ? legacy.classes : Object.values(legacy.classes || {});
+      const updates = {
+        meta: { classes, timetable: legacy.timetable || {}, lessons: legacy.lessons || [] }
+      };
+      students.forEach((student) => {
+        const id = String(student.id);
+        updates[`students/${id}`] = { id, name: student.name, classId: student.classId, field: student.field, avatar: student.avatar || "" };
+        updates[`studentData/${id}`] = { week: student.week || [0,0,0,0,0,0,0], goals: (legacy.goals || {})[id] || [], history: (legacy.history || {})[id] || {} };
+        updates[`classSummaries/${student.classId}/${id}`] = { id, name: student.name, classId: student.classId, field: student.field, avatar: student.avatar || "", week: student.week || [0,0,0,0,0,0,0], goals: (legacy.goals || {})[id] || [] };
+      });
+      teachers.forEach((teacher) => {
+        const id = String(teacher.id);
+        updates[`teachers/${id}`] = { id, name: teacher.name, subject: teacher.subject, classIds: Object.fromEntries(classes.map((c) => [c, true])) };
+      });
+      await root.update(updates);
+      status.textContent = `${students.length} öğrenci ve ${teachers.length} öğretmen profili taşındı. Şimdi öğretmen Firebase Auth hesaplarını oluşturup users/{UID} eşleştirmesini ekleyin; en son database.rules.json kurallarını yayınlayın.`;
+    } catch (error) {
+      status.textContent = `Hata: ${error.message}`;
+    }
+  });
+</script>
+</html>
