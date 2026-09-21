@@ -1,0 +1,50 @@
+{
+  "rules": {
+    "yks_store": {
+      ".read": false,
+      ".write": false,
+      "meta": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('yks_store/users').child(auth.uid).child('role').val() === 'teacher'"
+      },
+      "users": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid && ((!data.exists() && newData.child('role').val() === 'student' && root.child('yks_store/studentIndex').child(newData.child('profileId').val()).val() === auth.uid) || (data.exists() && newData.child('role').val() === data.child('role').val() && newData.child('profileId').val() === data.child('profileId').val()))"
+        }
+      },
+      "studentIndex": {
+        "$studentId": {
+          ".read": false,
+          ".write": "auth != null && !data.exists() && newData.val() === auth.uid"
+        }
+      },
+      "students": {
+        "$studentId": {
+          ".read": "auth != null && (root.child('yks_store/users').child(auth.uid).child('profileId').val() === $studentId || (root.child('yks_store/users').child(auth.uid).child('role').val() === 'teacher' && root.child('yks_store/teachers').child(root.child('yks_store/users').child(auth.uid).child('profileId').val()).child('classIds').child(data.child('classId').val()).val() === true))",
+          ".write": "auth != null && root.child('yks_store/users').child(auth.uid).child('role').val() === 'student' && root.child('yks_store/users').child(auth.uid).child('profileId').val() === $studentId && root.child('yks_store/studentIndex').child($studentId).val() === auth.uid"
+        }
+      },
+      "studentData": {
+        "$studentId": {
+          ".read": "auth != null && (root.child('yks_store/users').child(auth.uid).child('profileId').val() === $studentId || (root.child('yks_store/users').child(auth.uid).child('role').val() === 'teacher' && root.child('yks_store/teachers').child(root.child('yks_store/users').child(auth.uid).child('profileId').val()).child('classIds').child(root.child('yks_store/students').child($studentId).child('classId').val()).val() === true))",
+          ".write": "auth != null && root.child('yks_store/users').child(auth.uid).child('role').val() === 'student' && root.child('yks_store/users').child(auth.uid).child('profileId').val() === $studentId && root.child('yks_store/studentIndex').child($studentId).val() === auth.uid"
+        }
+      },
+      "classSummaries": {
+        "$classId": {
+          ".read": "auth != null && ((root.child('yks_store/users').child(auth.uid).child('role').val() === 'student' && root.child('yks_store/students').child(root.child('yks_store/users').child(auth.uid).child('profileId').val()).child('classId').val() === $classId) || (root.child('yks_store/users').child(auth.uid).child('role').val() === 'teacher' && root.child('yks_store/teachers').child(root.child('yks_store/users').child(auth.uid).child('profileId').val()).child('classIds').child($classId).val() === true))",
+          "$studentId": {
+            ".write": "auth != null && root.child('yks_store/users').child(auth.uid).child('role').val() === 'student' && root.child('yks_store/users').child(auth.uid).child('profileId').val() === $studentId && root.child('yks_store/studentIndex').child($studentId).val() === auth.uid && root.child('yks_store/students').child($studentId).child('classId').val() === $classId"
+          }
+        }
+      },
+      "teachers": {
+        "$teacherId": {
+          ".read": "auth != null && root.child('yks_store/users').child(auth.uid).child('role').val() === 'teacher' && root.child('yks_store/users').child(auth.uid).child('profileId').val() === $teacherId",
+          ".write": false
+        }
+      }
+    }
+  }
+}
