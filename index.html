@@ -1,0 +1,579 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YKS Takip | Panel</title>
+  <link rel="icon" type="image/jpeg" href="favicon.jpg" />
+  <link rel="shortcut icon" type="image/jpeg" href="favicon.jpg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="auth-screen" class="auth-overlay">
+    <div class="auth-modal">
+      <div class="auth-header">
+        <h2>YKS Takip | Giriş</h2>
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="login">Giriş Yap</button>
+          <button class="auth-tab" data-tab="register">Öğrenci Kayıt</button>
+        </div>
+      </div>
+      <div class="auth-body">
+        <form id="loginForm" class="auth-form active">
+          <label>
+            Kullanıcı Tipi
+            <select id="loginRole" required>
+              <option value="student">Öğrenci</option>
+              <option value="teacher">Öğretmen</option>
+            </select>
+          </label>
+          <label>
+            Okul Numarası / Öğretmen ID
+            <input type="text" id="loginId" placeholder="Öğrenci okul no veya öğretmen ID" required />
+          </label>
+          <label>
+            Şifre
+            <input type="password" id="loginPassword" placeholder="Şifreniz" required />
+          </label>
+          <button type="submit" class="btn-primary">Giriş Yap</button>
+          <p class="form-error" id="loginError"></p>
+        </form>
+
+        <form id="registerForm" class="auth-form hidden">
+          <label>
+            Ad Soyad
+            <input type="text" id="regName" placeholder="Örn: Ali Veli" required />
+          </label>
+          <label>
+            Öğrenci Numarası
+            <input type="text" id="regId" placeholder="Örn: 123" required />
+          </label>
+          <label>
+            Sınıf
+            <select id="regClass" required>
+              <option value="12-A">12-A</option>
+              <option value="12-B">12-B</option>
+              <option value="12-C">12-C</option>
+              <option value="12-D">12-D</option>
+            </select>
+          </label>
+          <label>
+            Alan
+            <select id="regField" required>
+              <option>Sayısal</option>
+              <option>Eşit Ağırlık</option>
+              <option>Sözel</option>
+              <option>Dil</option>
+            </select>
+          </label>
+
+          <label>
+            Şifre Belirle
+            <input type="password" id="regPassword" placeholder="Şifre" required />
+          </label>
+          <button type="submit" class="btn-primary">Kayıt Ol</button>
+          <p class="form-error" id="regError"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="app hidden" id="mainApp">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="brand-mark">Y</span>
+        <div>
+          <strong>YKS Takip</strong>
+          <small id="brandRole">12. Sınıf Paneli</small>
+        </div>
+      </div>
+
+      <!-- Role switch removed, handled by login system -->
+
+      <nav class="nav" id="studentNav" aria-label="Öğrenci menüsü">
+        <button class="nav-btn" data-page="settings">Hesap Ayarları</button>
+        <button class="nav-btn active" data-page="home">Anasayfa</button>
+        <button class="nav-btn" data-page="goals">Günlük Hedefler</button>
+        <button class="nav-btn" data-page="lessons">İşlenen Konular</button>
+        <button class="nav-btn" data-page="calendar">Takvimim</button>
+        <button class="nav-btn" data-page="study-calendar">Çalışma Takvimi</button>
+        <button class="nav-btn" data-page="reports">Raporlarım</button>
+        <button class="nav-btn" data-page="rank">Sınıf Sıralaması</button>
+      </nav>
+
+      <nav class="nav hidden" id="teacherNav" aria-label="Öğretmen menüsü">
+        <button class="nav-btn" data-page="settings">Hesap Ayarları</button>
+        <button class="nav-btn" data-page="teacher-home">Sınıf Özeti</button>
+        <button class="nav-btn" data-page="topic-log">Konu Kaydı</button>
+        <button class="nav-btn" data-page="class-track">Öğrenci Takibi</button>
+        <button class="nav-btn" data-page="timetable">Ders Programı</button>
+        <button class="nav-btn" data-page="teacher-rank">Liderlik Tablosu</button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <p>Öğrenci kendi hedefini yazar. Öğretmen işlenen konuyu ve sınıf ilerlemesini görür.</p>
+        <button type="button" class="btn-ghost" id="logoutBtn" style="width: 100%; margin-top: 1rem;">Çıkış Yap</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <button class="menu-toggle" id="menuToggle" aria-label="Menüyü aç">☰</button>
+        <div class="search-hint" id="topHint">Bugünün özeti</div>
+        <div class="profile">
+          <div class="profile-text">
+            <strong id="profileName">Elif Yılmaz</strong>
+            <span id="profileMeta">12-A · Sayısal</span>
+          </div>
+          <div class="profile-avatar-container">
+            <img class="avatar" id="profileAvatar" src="" alt="Profil fotoğrafı" />
+            <label for="profileFileInput" class="avatar-edit-overlay hidden" id="avatarEditBtn" title="Profil Fotoğrafı Yükle (Max 5MB)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="white"><path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/></svg>
+            </label>
+            <input type="file" id="profileFileInput" accept="image/*" class="hidden" />
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="page active" id="page-home">
+          <h1 id="welcomeTitle">Hoş Geldin, Elif Yılmaz</h1>
+          <p class="lead">Kendi hedefini takip et, öğretmeninin işlediği konuyu gör.</p>
+
+          <div class="today-grid">
+            <article class="goal-card">
+              <p class="eyebrow">Öğretmenin işlediği konu</p>
+              <h2 id="todayLesson">📢 Bugünün Konu Hedefi: <span>—</span></h2>
+              <p class="target" id="todayGoalText">🎯 Kendi hedefin: <strong>0 Soru</strong></p>
+              <div class="progress"><div class="progress-bar" id="goalProgress"></div></div>
+              <p class="progress-label"><span id="solvedLabel">0</span> / <span id="goalTotal">0</span> soru tamamlandı</p>
+            </article>
+
+            <form class="entry-card" id="solveForm">
+              <label for="solvedCount">Bugün Kaç Soru Çözdün?</label>
+              <div class="entry-row">
+                <input id="solvedCount" name="solvedCount" type="number" min="0" max="500" placeholder="Örn. 42" required />
+                <button type="submit" class="btn-primary">Onayla</button>
+              </div>
+              <p class="form-note" id="formNote">Girdiğin sayı kendi günlük hedefine işlenir.</p>
+            </form>
+          </div>
+
+          <section class="chart-card">
+            <div class="chart-head">
+              <h3>Son 1 Hafta — Soru Çözümü</h3>
+              <span class="chip">Haftalık ilerleme</span>
+            </div>
+            <div class="chart" id="weekChart" role="img" aria-label="Haftalık soru çözüm grafiği"></div>
+          </section>
+
+          <article class="panel-card home-study-cta">
+            <p class="eyebrow">Çalışma süresi</p>
+            <h3>Kronometre ve aylık plan</h3>
+            <p class="lead" style="margin:0;">Ders bazında süre tutmak ve güne plan yazmak için Çalışma Takvimi sayfasını kullan. Zamanlayıcı çalışırken sağ alttaki bant her sayfada görünür.</p>
+            <button type="button" class="btn-primary" id="goStudyCalendarBtn">Çalışma Takvimine Git</button>
+          </article>
+        </section>
+
+        <section class="page" id="page-goals">
+          <h1>Günlük Hedefler</h1>
+          <p class="lead">Bu hafta çözmek istediğin soru hedeflerini sen belirlersin. Öğretmenin bunları sınıf takibinden görür.</p>
+
+          <form class="panel-card form-grid" id="goalForm">
+            <label>
+              Gün
+              <select id="goalDay" required></select>
+            </label>
+            <label>
+              Ders
+              <select id="goalSubject" required>
+                <option>Matematik</option>
+                <option>Fizik</option>
+                <option>Kimya</option>
+                <option>Biyoloji</option>
+                <option>Türkçe</option>
+                <option>Edebiyat</option>
+                <option>Tarih</option>
+                <option>Coğrafya</option>
+              </select>
+            </label>
+            <label>
+              Konu
+              <input id="goalTopic" type="text" placeholder="Örn. Polinomlar" required />
+            </label>
+            <label>
+              Soru hedefi
+              <input id="goalCount" type="number" min="1" max="500" placeholder="60" required />
+            </label>
+            <button type="submit" class="btn-primary">Hedefi Kaydet</button>
+          </form>
+          <div class="list" id="studentGoalList"></div>
+        </section>
+
+        <section class="page" id="page-lessons">
+          <h1>İşlenen Konular</h1>
+          <p class="lead">Öğretmenlerin sınıfta o gün anlattığı konular. Buradan sadece görüntüleyebilirsin.</p>
+          <div class="day-tabs" id="studentDayTabs"></div>
+          <div class="lesson-grid" id="studentLessonGrid"></div>
+        </section>
+
+        <section class="page" id="page-reports">
+          <h1>Raporlarım</h1>
+          <p class="lead">Bu ay çözdüğün toplam soru ve hedef özeti.</p>
+          <div class="stats" id="reportStats"></div>
+        </section>
+
+        <section class="page" id="page-rank">
+          <h1>Liderlik Tablosu</h1>
+          <p class="lead">Bu haftaki soru çözümü sıralaması ve derece tablosu.</p>
+          <div class="day-tabs" id="studentRankTabs" style="margin-bottom: 20px;">
+            <button type="button" class="tab-btn active" id="rankTabClass">Sınıfım</button>
+            <button type="button" class="tab-btn" id="rankTabSchool">Okul Geneli</button>
+            <button type="button" class="tab-btn" id="rankTabStudy">⏱ En Çok Çalışan</button>
+          </div>
+          <ol class="rank" id="rankList"></ol>
+        </section>
+
+        <section class="page" id="page-calendar">
+          <h1>Aylık Takvim</h1>
+          <p class="lead">Geçmişte hangi gün ne kadar çalıştığını incele.</p>
+          
+          <div class="calendar-wrapper panel-card">
+            <div class="calendar-header">
+              <button class="btn-ghost" id="calPrevMonth">&lt;</button>
+              <h2 id="calMonthYear">Eylül 2026</h2>
+              <button class="btn-ghost" id="calNextMonth">&gt;</button>
+            </div>
+            
+            <div class="calendar-grid" id="calendarGrid">
+              <div class="cal-day-name">Pzt</div>
+              <div class="cal-day-name">Sal</div>
+              <div class="cal-day-name">Çar</div>
+              <div class="cal-day-name">Per</div>
+              <div class="cal-day-name">Cum</div>
+              <div class="cal-day-name">Cmt</div>
+              <div class="cal-day-name">Paz</div>
+              <!-- Calendar days will be injected here -->
+            </div>
+          </div>
+          
+          <div class="panel-card hidden" id="calDetailCard" style="margin-top: 20px;">
+            <h3 id="calDetailDate" style="color: var(--navy); margin-bottom: 12px;">Tarih</h3>
+            <div id="calDetailContent"></div>
+          </div>
+        </section>
+
+        <!-- ===== ÇALIŞMA TAKVİMİ SAYFASI ===== -->
+        <section class="page study-calendar-page" id="page-study-calendar">
+          <h1>⏱ Çalışma Takvimi</h1>
+          <p class="lead">Günlük çalışma planını oluştur ve kronometreyle fiili süreyi takip et.</p>
+
+          <!-- Stopwatch Card -->
+          <div class="stopwatch-card panel-card" id="stopwatchCard">
+            <div class="stopwatch-header">
+              <span class="eyebrow">Canlı Kronometre</span>
+              <span class="sw-status-dot" id="swStatusDot"></span>
+            </div>
+            <div class="sw-display" id="swDisplay">00:00:00</div>
+            <div class="sw-form">
+              <label class="sw-label">
+                Ders
+                <select id="swSubject">
+                  <option>Matematik</option>
+                  <option>Fizik</option>
+                  <option>Kimya</option>
+                  <option>Biyoloji</option>
+                  <option>Türkçe</option>
+                  <option>Edebiyat</option>
+                  <option>Tarih</option>
+                  <option>Coğrafya</option>
+                  <option>Kitap Okuma</option>
+                  <option>Soru Çözümü</option>
+                  <option>Diğer</option>
+                </select>
+              </label>
+              <label class="sw-label">
+                Konu
+                <input type="text" id="swTopic" placeholder="Örn. Polinomlar, TYT Mat..." />
+              </label>
+            </div>
+            <div class="sw-buttons">
+              <button class="btn-primary" id="swStartBtn" type="button">▶ Başlat</button>
+              <button class="btn-ghost" id="swPauseBtn" type="button" style="display:none;">⏸ Duraklat</button>
+              <button class="btn-save" id="swSaveBtn" type="button" style="display:none;">⏹ Bitir &amp; Kaydet</button>
+            </div>
+            <p class="form-note" id="swNote"></p>
+          </div>
+
+          <!-- Çalışma Planı Ekleme -->
+          <div class="panel-card">
+            <h3 style="color:var(--navy);margin-bottom:16px;">📋 Günlük Plan Ekle</h3>
+            <form class="form-grid" id="studyPlanForm">
+              <label>
+                Tarih
+                <input type="date" id="spDate" required />
+              </label>
+              <label>
+                Ders
+                <select id="spSubject" required>
+                  <option>Matematik</option>
+                  <option>Fizik</option>
+                  <option>Kimya</option>
+                  <option>Biyoloji</option>
+                  <option>Türkçe</option>
+                  <option>Edebiyat</option>
+                  <option>Tarih</option>
+                  <option>Coğrafya</option>
+                  <option>Kitap Okuma</option>
+                  <option>Soru Çözümü</option>
+                  <option>Diğer</option>
+                </select>
+              </label>
+              <label>
+                Planlanan saat
+                <input type="number" id="spHours" min="0.5" max="12" step="0.5" placeholder="Örn. 2" required />
+              </label>
+              <button type="submit" class="btn-primary">Plan Ekle</button>
+            </form>
+          </div>
+
+          <!-- Aylık Çalışma Takvimi -->
+          <div class="calendar-wrapper panel-card" style="margin-top:0;">
+            <div class="calendar-header">
+              <button class="btn-ghost" id="scCalPrev">&lt;</button>
+              <h2 id="scCalMonthYear">Eylül 2026</h2>
+              <button class="btn-ghost" id="scCalNext">&gt;</button>
+            </div>
+            <div class="calendar-grid" id="scCalendarGrid">
+              <div class="cal-day-name">Pzt</div>
+              <div class="cal-day-name">Sal</div>
+              <div class="cal-day-name">Çar</div>
+              <div class="cal-day-name">Per</div>
+              <div class="cal-day-name">Cum</div>
+              <div class="cal-day-name">Cmt</div>
+              <div class="cal-day-name">Paz</div>
+            </div>
+          </div>
+
+          <!-- Günlük detay -->
+          <div class="panel-card hidden" id="scDetailCard" style="margin-top:0;">
+            <h3 id="scDetailDate" style="color:var(--navy);margin-bottom:12px;">Tarih</h3>
+            <div id="scDetailContent"></div>
+            <div class="list" id="studyPlanList" style="margin-top:12px;"></div>
+          </div>
+        </section>
+
+        <section class="page" id="page-teacher-home">
+          <h1>Sınıf Özeti</h1>
+          <p class="lead">Sınıflara göre bugünkü çözüm ve hedef durumu.</p>
+          <div class="stats" id="teacherStats"></div>
+          <div class="class-tabs" id="summaryClassTabs"></div>
+          <div class="table-wrap" id="summaryTable"></div>
+        </section>
+
+        <section class="page" id="page-topic-log">
+          <h1>Konu Kaydı</h1>
+          <p class="lead">O gün hangi dersi işlediysen konuyu kaydet. Öğrenciler bunu İşlenen Konular sayfasında görür.</p>
+          <form class="panel-card form-grid" id="lessonForm">
+            <label>
+              Sınıf
+              <select id="lessonClass" required></select>
+            </label>
+            <label>
+              Gün
+              <select id="lessonDay" required></select>
+            </label>
+            <label>
+              Tarih
+              <input id="lessonDate" type="date" required />
+            </label>
+            <label>
+              Ders
+              <select id="lessonSubject" required></select>
+            </label>
+            <label>
+              İşlenen konu
+              <input id="lessonTopic" type="text" placeholder="Örn. Polinomlar" required />
+            </label>
+            <button type="submit" class="btn-primary">Konuyu Kaydet</button>
+          </form>
+          <div class="day-tabs" id="teacherDayTabs"></div>
+          <div class="lesson-grid" id="teacherLessonGrid"></div>
+        </section>
+
+        <section class="page" id="page-class-track">
+          <h1>Öğrenci Takibi</h1>
+          <p class="lead">Sınıfa göre öğrencilerin çözdüğü soru sayıları ve kendi yazdıkları günlük hedefler.</p>
+          <div class="class-tabs" id="trackClassTabs"></div>
+          <div class="table-wrap" id="trackTable"></div>
+        </section>
+
+        <section class="page" id="page-timetable">
+          <h1>Ders Programı Yönetimi</h1>
+          <p class="lead">Hangi gün hangi derslerin işleneceğini belirleyin.</p>
+          <form class="panel-card form-grid" id="timetableForm">
+            <label>
+              Gün
+              <select id="ttDay" required></select>
+            </label>
+            <label>
+              Saat
+              <input type="time" id="ttTime" required />
+            </label>
+            <label>
+              Eklenecek Ders
+              <select id="ttSubject" required>
+                <option>Matematik</option>
+                <option>Fizik</option>
+                <option>Kimya</option>
+                <option>Biyoloji</option>
+                <option>Türkçe</option>
+                <option>Edebiyat</option>
+                <option>Tarih</option>
+                <option>Coğrafya</option>
+              </select>
+            </label>
+            <button type="submit" class="btn-primary">Güne Ders Ekle</button>
+          </form>
+          <div class="day-tabs" id="ttDayTabs"></div>
+          <div class="list" id="ttList"></div>
+        </section>
+
+        <section class="page" id="page-teacher-rank">
+          <h1>Liderlik Tablosu (Genel)</h1>
+          <p class="lead">Tüm öğrenciler arasındaki haftalık soru ve çalışma süresi sıralaması.</p>
+          <div class="day-tabs" id="teacherRankTabs" style="margin-bottom: 20px;">
+            <button type="button" class="tab-btn active" id="teacherRankTabQuestions">Soru sayısı</button>
+            <button type="button" class="tab-btn" id="teacherRankTabStudy">⏱ En Çok Çalışan</button>
+          </div>
+          <ol class="rank" id="teacherRankList"></ol>
+        </section>
+        <section class="page" id="page-settings">
+          <h1>Hesap Ayarları</h1>
+          <p class="lead">Şifreni değiştirmek için mevcut şifreni doğrula.</p>
+          <form class="panel-card auth-form" id="passwordForm" style="max-width: 520px;">
+            <label>
+              Mevcut şifre
+              <input id="currentPassword" type="password" autocomplete="current-password" required />
+            </label>
+            <label>
+              Yeni şifre
+              <input id="newPassword" type="password" minlength="6" autocomplete="new-password" required />
+            </label>
+            <label>
+              Yeni şifre (tekrar)
+              <input id="newPasswordConfirm" type="password" minlength="6" autocomplete="new-password" required />
+            </label>
+            <button type="submit" class="btn-primary">Şifreyi Güncelle</button>
+            <p class="form-note" id="passwordNote" aria-live="polite"></p>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <!-- Floating Stopwatch Mini Widget (visible on all pages while timer is running) -->
+    <div class="sw-float hidden" id="swFloat">
+      <span class="sw-float-label" id="swFloatLabel">Kronometre</span>
+      <span class="sw-float-time" id="swFloatTime">00:00:00</span>
+      <button class="sw-float-btn" id="swFloatStart" type="button" title="Başlat">▶</button>
+      <button class="sw-float-btn" id="swFloatPause" type="button" title="Duraklat" style="display:none;">⏸</button>
+      <button class="sw-float-btn sw-float-stop" id="swFloatStop" type="button" title="Bitir ve kaydet" style="display:none;">⏹</button>
+    </div>
+
+    <!-- Focus screen: shown while the study timer is active -->
+    <section class="focus-overlay hidden" id="focusOverlay" role="dialog" aria-modal="true" aria-labelledby="focusTitle">
+      <div class="focus-card">
+        <span class="focus-eyebrow">ODAK MODU AÇIK</span>
+        <h2 id="focusTitle">Şimdi sadece ders zamanı.</h2>
+        <p class="focus-subject" id="focusSubject">Kronometre</p>
+        <div class="focus-time" id="focusTime">00:00:00</div>
+        <p class="focus-hint">Çalışmaya geri dönmek için bu ekranı açık bırak. Bitirmek istediğinde süre kaydedilir.</p>
+        <div class="focus-actions">
+          <button class="btn-ghost focus-pause" id="focusPauseBtn" type="button">⏸ Duraklat</button>
+          <button class="btn-save" id="focusStopBtn" type="button">⏹ Bitir &amp; Kaydet</button>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+  <!-- Teacher Student Profile Modal -->
+  <div id="teacherStudentProfile" class="modal-overlay hidden">
+    <div class="modal-content profile-modal">
+      <button class="modal-close" id="closeStudentProfile">×</button>
+      
+      <div class="profile-header" style="display: flex; align-items: center; gap: 16px;">
+        <img class="avatar" id="profModalAvatar" src="" alt="Öğrenci fotoğrafı" style="width: 52px; height: 52px;" />
+        <div>
+          <h2 id="profName">Öğrenci Adı</h2>
+          <p class="prof-meta" id="profMeta">12-A • Sayısal • ID: 105</p>
+        </div>
+      </div>
+
+      <div class="profile-body">
+        <div class="prof-stats">
+          <div class="stat-card">
+            <h3>Bu Hafta Çözülen</h3>
+            <p id="profWeekTotal" class="stat-num">0</p>
+          </div>
+          <div class="stat-card">
+            <h3>Kayıtlı Toplam Soru</h3>
+            <p id="profHistoryTotal" class="stat-num">0</p>
+          </div>
+          <div class="stat-card">
+            <h3>Toplam Çalışma</h3>
+            <p id="profStudyTotal" class="stat-num study-stat-num">0 dk</p>
+          </div>
+        </div>
+
+        <section class="prof-study-section" aria-labelledby="profStudyTitle">
+          <div class="prof-study-heading">
+            <div>
+              <h3 id="profStudyTitle">Çalışma Dökümü</h3>
+              <p>Hangi derse ve konuya ne kadar süre ayrıldığı.</p>
+            </div>
+          </div>
+          <div id="profStudySubjects" class="prof-study-subjects"></div>
+          <div class="prof-session-history">
+            <h4>Oturum Geçmişi</h4>
+            <div id="profStudySessions"></div>
+          </div>
+        </section>
+        
+        <div class="prof-calendar-section">
+          <h3>Öğrenci Takvimi</h3>
+          <div class="calendar-wrapper panel-card">
+            <div class="calendar-header">
+              <button class="btn-ghost" id="profCalPrev">&lt;</button>
+              <h2 id="profCalMonthYear">Eylül 2026</h2>
+              <button class="btn-ghost" id="profCalNext">&gt;</button>
+            </div>
+            <div class="calendar-grid" id="profCalendarGrid">
+              <div class="cal-day-name">Pzt</div>
+              <div class="cal-day-name">Sal</div>
+              <div class="cal-day-name">Çar</div>
+              <div class="cal-day-name">Per</div>
+              <div class="cal-day-name">Cum</div>
+              <div class="cal-day-name">Cmt</div>
+              <div class="cal-day-name">Paz</div>
+            </div>
+          </div>
+          
+          <div class="panel-card hidden" id="profCalDetailCard" style="margin-top: 16px;">
+            <h4 id="profCalDetailDate" style="color: var(--navy); margin-bottom: 8px;">Tarih</h4>
+            <div id="profCalDetailContent"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase Realtime Database SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
